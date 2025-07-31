@@ -2,43 +2,24 @@ import win32clipboard
 import win32con
 import re
 import os
-
 import time
 
 def save_hex_dump(data, filename):
     """
-    Saves data to a file in a classic hex dump format.
-    Handles raw bytes, strings, and other data types gracefully.
+    Saves raw bytes to a file for viewing in a hex editor.
     """
     try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            # If the data is not in byte form, it's often a tuple of strings (like for files),
-            # an integer (like for locale), or just a string. We write its representation.
+        with open(filename, 'wb') as f:
+            # If the data is not in byte form, convert it to bytes
             if not isinstance(data, (bytes, memoryview)):
-                f.write(f"--- Data is not raw bytes. Python type: {type(data)} ---\n\n")
-                f.write(str(data))
-                return
-
-            byte_data = bytes(data)
-            f.write(f"--- Dump of {len(byte_data)} bytes ---\n\n")
+                # Convert to string representation and encode as UTF-8
+                byte_data = str(data).encode('utf-8')
+            else:
+                byte_data = bytes(data)
             
-            line_size = 16  # 16 bytes per line
-            for i in range(0, len(byte_data), line_size):
-                chunk = byte_data[i:i + line_size]
-                
-                # 1. Address part (e.g., "00000000: ")
-                hex_addr = f'{i:08x}: '
-                
-                # 2. Hex part (e.g., "48 65 6c 6c 6f...")
-                hex_part = ' '.join(f'{b:02x}' for b in chunk)
-                hex_part = hex_part.ljust(line_size * 3 - 1) # Pad to align columns
-                
-                # 3. ASCII part (e.g., "Hello...")
-                ascii_part = ''.join(chr(b) if 32 <= b < 127 else '.' for b in chunk)
-                
-                f.write(f'{hex_addr} {hex_part}  {ascii_part}\n')
+            f.write(byte_data)
     except Exception as e:
-        print(f"      [!] Failed to write hex dump to {filename}: {e}")
+        print(f"      [!] Failed to write raw bytes to {filename}: {e}")
 
 def inspect_and_dump_clipboard():
     """
@@ -92,9 +73,10 @@ def inspect_and_dump_clipboard():
                 # Sanitize the format name to create a valid filename
                 safe_filename = re.sub(r'[^a-zA-Z0-9_]', '', format_name)
                 
+                
                 timestamp = int(time.time())
                 
-                output_filename = f"dumps\\clipboard_dump_{timestamp}_{safe_filename}.txt"
+                output_filename = f"clipboard_dump_{timestamp}_{safe_filename}.hex"
                 
                 print(f"    > Dumping data to {output_filename}")
                 save_hex_dump(data, output_filename)
